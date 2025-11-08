@@ -64,6 +64,7 @@
       status: 'all',
       search: ''
     };
+    var categorySelect = document.getElementById('product-category');
 
     function prefersDark() {
       return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -507,6 +508,51 @@
       renderProducts(filteredProducts);
     }
 
+    function loadCategories() {
+      if (!categorySelect) {
+        return;
+      }
+
+      var url = ajaxUrl;
+      if (url.indexOf('?') === -1) {
+        url += '?action=get_categories';
+      } else {
+        url += '&action=get_categories';
+      }
+
+      fetch(url, {
+        credentials: 'same-origin'
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Network error');
+          }
+          return response.json();
+        })
+        .then(function (json) {
+          if (!json || !json.success) {
+            throw new Error((json && json.data && json.data.message) || 'Erreur');
+          }
+          var categories = json.data || [];
+          var selectedValue = categorySelect.value;
+          categorySelect.innerHTML = '<option value="">Aucune catégorie</option>';
+          categories.forEach(function (category) {
+            var option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
+            if (category.id == selectedValue) {
+              option.selected = true;
+            }
+            categorySelect.appendChild(option);
+          });
+        })
+        .catch(function (error) {
+          if (window.console && console.error) {
+            console.error('Erreur chargement catégories:', error);
+          }
+        });
+    }
+
     function populateFilters() {
       if (filterCasier) {
         var selectedCasier = filterCasier.value;
@@ -734,6 +780,9 @@
       }
       if (existingImageInput) {
         existingImageInput.value = product.image ? normalizeImage(product.image) : '';
+      }
+      if (categorySelect) {
+        categorySelect.value = product.category_id || '';
       }
       if (product.image && imagePreview) {
         imagePreview.src = normalizeImage(product.image);
@@ -1283,6 +1332,7 @@
       document.body.appendChild(mobileBurger);
     }
 
+    loadCategories();
     fetchProducts();
   });
 })();

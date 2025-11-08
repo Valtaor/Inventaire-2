@@ -73,6 +73,13 @@ function inventory_db_ensure_table()
 
     // Création de la table brouillons
     inventory_db_ensure_drafts_table();
+
+    // Création des tables catégories et tags
+    inventory_db_ensure_categories_table();
+    inventory_db_ensure_tags_table();
+
+    // Migration : Ajouter les colonnes pour les catégories et tags
+    inventory_db_migrate_category_columns();
 }
 
 /**
@@ -124,6 +131,75 @@ function inventory_db_ensure_drafts_table()
 
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     dbDelta($sql);
+}
+
+/**
+ * Vérification de la table catégories
+ */
+function inventory_db_ensure_categories_table()
+{
+    global $wpdb;
+    $table = $wpdb->prefix . 'inventaire_categories';
+    $charset = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE IF NOT EXISTS $table (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        color VARCHAR(7) DEFAULT '#c47b83',
+        icon VARCHAR(50) DEFAULT NULL,
+        date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY name (name)
+    ) $charset;";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
+ * Vérification de la table tags
+ */
+function inventory_db_ensure_tags_table()
+{
+    global $wpdb;
+    $table = $wpdb->prefix . 'inventaire_tags';
+    $charset = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE IF NOT EXISTS $table (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY name (name)
+    ) $charset;";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+/**
+ * Migration : Ajoute les colonnes pour les catégories et tags si elles n'existent pas
+ */
+function inventory_db_migrate_category_columns()
+{
+    global $wpdb;
+    $table = $wpdb->prefix . 'inventaire';
+
+    // Vérifier si la table existe
+    $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'");
+    if (!$table_exists) {
+        return;
+    }
+
+    // Ajouter la colonne category_id si elle n'existe pas
+    $column_exists = $wpdb->get_results("SHOW COLUMNS FROM $table LIKE 'category_id'");
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table ADD COLUMN category_id INT UNSIGNED DEFAULT NULL AFTER image");
+    }
+
+    // Ajouter la colonne tags si elle n'existe pas
+    $column_exists = $wpdb->get_results("SHOW COLUMNS FROM $table LIKE 'tags'");
+    if (empty($column_exists)) {
+        $wpdb->query("ALTER TABLE $table ADD COLUMN tags TEXT DEFAULT NULL AFTER category_id");
+    }
 }
 
 /**
@@ -215,6 +291,7 @@ function inventory_add_product()
         'notes'             => sanitize_textarea_field($_POST['notes'] ?? ''),
         'description'       => sanitize_textarea_field($_POST['description'] ?? ''),
         'date_achat'        => sanitize_text_field($_POST['date_achat'] ?? ''),
+        'category_id'       => !empty($_POST['category_id']) ? intval($_POST['category_id']) : null,
         'image'             => '',
     ];
 
@@ -240,8 +317,8 @@ function inventory_add_product()
 
     try {
         $sql = "INSERT INTO {$GLOBALS['wpdb']->prefix}inventaire
-                (nom, reference, emplacement, prix_achat, prix_vente, prix_vente_ebay, prix_vente_lbc, prix_vente_vinted, prix_vente_autre, stock, a_completer, notes, description, date_achat, image)
-                VALUES (:nom, :reference, :emplacement, :prix_achat, :prix_vente, :prix_vente_ebay, :prix_vente_lbc, :prix_vente_vinted, :prix_vente_autre, :stock, :a_completer, :notes, :description, :date_achat, :image)";
+                (nom, reference, emplacement, prix_achat, prix_vente, prix_vente_ebay, prix_vente_lbc, prix_vente_vinted, prix_vente_autre, stock, a_completer, notes, description, date_achat, image, category_id)
+                VALUES (:nom, :reference, :emplacement, :prix_achat, :prix_vente, :prix_vente_ebay, :prix_vente_lbc, :prix_vente_vinted, :prix_vente_autre, :stock, :a_completer, :notes, :description, :date_achat, :image, :category_id)";
         $stmt = $pdo->prepare($sql);
         $stmt->execute($fields);
         wp_send_json_success(['id' => $pdo->lastInsertId()]);
@@ -286,6 +363,7 @@ function inventory_edit_product()
         'notes'             => sanitize_textarea_field($_POST['notes'] ?? ''),
         'description'       => sanitize_textarea_field($_POST['description'] ?? ''),
         'date_achat'        => sanitize_text_field($_POST['date_achat'] ?? ''),
+        'category_id'       => !empty($_POST['category_id']) ? intval($_POST['category_id']) : null,
         'image'             => null,
     ];
 
@@ -331,7 +409,8 @@ function inventory_edit_product()
                     notes = :notes,
                     description = :description,
                     date_achat = :date_achat,
-                    image = :image
+                    image = :image,
+                    category_id = :category_id
                 WHERE id = :id";
 
         $stmt = $pdo->prepare($sql);
@@ -351,6 +430,7 @@ function inventory_edit_product()
             ':description' => $fields['description'],
             ':date_achat' => $fields['date_achat'],
             ':image' => $fields['image'],
+            ':category_id' => $fields['category_id'],
             ':id' => $id,
         ]);
 
@@ -804,3 +884,268 @@ add_action('wp_ajax_get_sidebar_state', 'inventory_get_sidebar_state');
  * Vérification de la table à chaque chargement (pour les migrations)
  */
 add_action('after_setup_theme', 'inventory_db_ensure_table');
+
+/**
+ * Récupérer toutes les catégories
+ */
+function inventory_get_categories()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->query("SELECT * FROM {$GLOBALS['wpdb']->prefix}inventaire_categories ORDER BY name ASC");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        wp_send_json_success($data);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_get_categories', 'inventory_get_categories');
+add_action('wp_ajax_nopriv_get_categories', 'inventory_get_categories');
+
+/**
+ * Ajouter une catégorie
+ */
+function inventory_add_category()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $name = sanitize_text_field($_POST['name'] ?? '');
+    $color = sanitize_text_field($_POST['color'] ?? '#c47b83');
+    $icon = sanitize_text_field($_POST['icon'] ?? '');
+
+    if (empty($name)) {
+        wp_send_json_error(['message' => 'Le nom de la catégorie est requis']);
+        return;
+    }
+
+    try {
+        $sql = "INSERT INTO {$GLOBALS['wpdb']->prefix}inventaire_categories (name, color, icon) VALUES (:name, :color, :icon)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':name' => $name,
+            ':color' => $color,
+            ':icon' => $icon
+        ]);
+        wp_send_json_success(['id' => $pdo->lastInsertId()]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_add_category', 'inventory_add_category');
+
+/**
+ * Modifier une catégorie
+ */
+function inventory_edit_category()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $id = intval($_POST['id'] ?? 0);
+    $name = sanitize_text_field($_POST['name'] ?? '');
+    $color = sanitize_text_field($_POST['color'] ?? '#c47b83');
+    $icon = sanitize_text_field($_POST['icon'] ?? '');
+
+    if ($id <= 0) {
+        wp_send_json_error(['message' => 'ID invalide']);
+        return;
+    }
+
+    if (empty($name)) {
+        wp_send_json_error(['message' => 'Le nom de la catégorie est requis']);
+        return;
+    }
+
+    try {
+        $sql = "UPDATE {$GLOBALS['wpdb']->prefix}inventaire_categories SET name = :name, color = :color, icon = :icon WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':name' => $name,
+            ':color' => $color,
+            ':icon' => $icon,
+            ':id' => $id
+        ]);
+        wp_send_json_success(['id' => $id]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_edit_category', 'inventory_edit_category');
+
+/**
+ * Supprimer une catégorie
+ */
+function inventory_delete_category()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $id = intval($_POST['id'] ?? 0);
+    if ($id <= 0) {
+        wp_send_json_error(['message' => 'ID invalide']);
+        return;
+    }
+
+    try {
+        // Retirer la catégorie des produits associés
+        $stmt = $pdo->prepare("UPDATE {$GLOBALS['wpdb']->prefix}inventaire SET category_id = NULL WHERE category_id = :id");
+        $stmt->execute([':id' => $id]);
+
+        // Supprimer la catégorie
+        $sql = "DELETE FROM {$GLOBALS['wpdb']->prefix}inventaire_categories WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        wp_send_json_success(['deleted' => $id]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_delete_category', 'inventory_delete_category');
+
+/**
+ * Récupérer tous les tags
+ */
+function inventory_get_tags()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    try {
+        $stmt = $pdo->query("SELECT * FROM {$GLOBALS['wpdb']->prefix}inventaire_tags ORDER BY name ASC");
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        wp_send_json_success($data);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_get_tags', 'inventory_get_tags');
+add_action('wp_ajax_nopriv_get_tags', 'inventory_get_tags');
+
+/**
+ * Ajouter un tag
+ */
+function inventory_add_tag()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $name = sanitize_text_field($_POST['name'] ?? '');
+
+    if (empty($name)) {
+        wp_send_json_error(['message' => 'Le nom du tag est requis']);
+        return;
+    }
+
+    try {
+        $sql = "INSERT INTO {$GLOBALS['wpdb']->prefix}inventaire_tags (name) VALUES (:name)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':name' => $name]);
+        wp_send_json_success(['id' => $pdo->lastInsertId()]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_add_tag', 'inventory_add_tag');
+
+/**
+ * Modifier un tag
+ */
+function inventory_edit_tag()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $id = intval($_POST['id'] ?? 0);
+    $name = sanitize_text_field($_POST['name'] ?? '');
+
+    if ($id <= 0) {
+        wp_send_json_error(['message' => 'ID invalide']);
+        return;
+    }
+
+    if (empty($name)) {
+        wp_send_json_error(['message' => 'Le nom du tag est requis']);
+        return;
+    }
+
+    try {
+        $sql = "UPDATE {$GLOBALS['wpdb']->prefix}inventaire_tags SET name = :name WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            ':name' => $name,
+            ':id' => $id
+        ]);
+        wp_send_json_success(['id' => $id]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_edit_tag', 'inventory_edit_tag');
+
+/**
+ * Supprimer un tag
+ */
+function inventory_delete_tag()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $id = intval($_POST['id'] ?? 0);
+    if ($id <= 0) {
+        wp_send_json_error(['message' => 'ID invalide']);
+        return;
+    }
+
+    try {
+        $sql = "DELETE FROM {$GLOBALS['wpdb']->prefix}inventaire_tags WHERE id = :id";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        wp_send_json_success(['deleted' => $id]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_delete_tag', 'inventory_delete_tag');
