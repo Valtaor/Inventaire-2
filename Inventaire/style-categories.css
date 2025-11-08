@@ -1,0 +1,259 @@
+/* ========================================
+   Taxonomie (Catégories & Tags) - Styles
+   ======================================== */
+
+.inventory-taxonomy-manager {
+  display: grid;
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.taxonomy-card {
+  background: var(--card-bg, #ffffff);
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.taxonomy-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.taxonomy-header h3 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.taxonomy-header p {
+  font-size: 0.95rem;
+  color: var(--text-secondary, #666666);
+  margin: 0;
+}
+
+/* Formulaire de taxonomie */
+.taxonomy-form {
+  background: var(--form-bg, #f8f9fa);
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.taxonomy-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.taxonomy-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.taxonomy-field-color {
+  max-width: 150px;
+}
+
+.taxonomy-field label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary, #1a1a1a);
+}
+
+.taxonomy-field input[type="text"],
+.taxonomy-field input[type="color"] {
+  padding: 0.75rem;
+  border: 1px solid var(--input-border, #e0e0e0);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  background: var(--input-bg, #ffffff);
+}
+
+.taxonomy-field input[type="color"] {
+  height: 45px;
+  cursor: pointer;
+}
+
+.taxonomy-field input[type="text"]:focus {
+  outline: none;
+  border-color: var(--primary-color, #c47b83);
+}
+
+.taxonomy-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Liste de taxonomie */
+.taxonomy-list-wrapper {
+  margin-top: 2rem;
+}
+
+.taxonomy-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.taxonomy-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--item-bg, #f8f9fa);
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.taxonomy-item:hover {
+  background: var(--item-hover-bg, #e9ecef);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.taxonomy-color-indicator {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.taxonomy-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.taxonomy-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-primary, #1a1a1a);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.taxonomy-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.taxonomy-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.taxonomy-btn-edit {
+  background: var(--primary-color, #c47b83);
+  color: #ffffff;
+}
+
+.taxonomy-btn-edit:hover {
+  background: var(--primary-hover, #b36a72);
+  transform: translateY(-1px);
+}
+
+.taxonomy-btn-delete {
+  background: var(--danger-color, #dc3545);
+  color: #ffffff;
+}
+
+.taxonomy-btn-delete:hover {
+  background: var(--danger-hover, #c82333);
+  transform: translateY(-1px);
+}
+
+.taxonomy-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-secondary, #666666);
+  font-style: italic;
+}
+
+/* Boutons d'action */
+.inventory-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.primary-button {
+  background: var(--primary-color, #c47b83);
+  color: #ffffff;
+}
+
+.primary-button:hover {
+  background: var(--primary-hover, #b36a72);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(196, 123, 131, 0.3);
+}
+
+.ghost-button {
+  background: transparent;
+  color: var(--primary-color, #c47b83);
+  border: 2px solid var(--primary-color, #c47b83);
+}
+
+.ghost-button:hover {
+  background: var(--primary-color, #c47b83);
+  color: #ffffff;
+}
+
+/* Mode sombre */
+[data-theme="dark"] .taxonomy-card {
+  --card-bg: #2a2a2a;
+  --form-bg: #1f1f1f;
+  --item-bg: #1f1f1f;
+  --item-hover-bg: #353535;
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0a0;
+  --input-bg: #1f1f1f;
+  --input-border: #404040;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .taxonomy-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .taxonomy-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .taxonomy-field-color {
+    max-width: none;
+  }
+
+  .taxonomy-item {
+    flex-wrap: wrap;
+  }
+
+  .taxonomy-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
