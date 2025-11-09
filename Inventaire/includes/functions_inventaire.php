@@ -1199,25 +1199,23 @@ function inventory_bulk_edit_products()
             return;
         }
 
-        // Créer les placeholders pour les IDs
-        $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+        // Créer les placeholders nommés pour les IDs
+        $idPlaceholders = [];
+        foreach ($product_ids as $index => $id) {
+            $placeholder = ':id_' . $index;
+            $idPlaceholders[] = $placeholder;
+            $params[$placeholder] = intval($id);
+        }
+
         $setClause = implode(', ', $setClauses);
+        $placeholders = implode(',', $idPlaceholders);
 
         $sql = "UPDATE {$GLOBALS['wpdb']->prefix}inventaire SET $setClause WHERE id IN ($placeholders)";
         $stmt = $pdo->prepare($sql);
 
-        // Bind des paramètres de mise à jour
-        $bindIndex = 1;
-        foreach ($params as $value) {
-            $stmt->bindValue($bindIndex++, $value);
-        }
+        // Bind tous les paramètres
+        $stmt->execute($params);
 
-        // Bind des IDs
-        foreach ($product_ids as $id) {
-            $stmt->bindValue($bindIndex++, intval($id), PDO::PARAM_INT);
-        }
-
-        $stmt->execute();
         wp_send_json_success(['updated' => $stmt->rowCount()]);
         return;
     } catch (PDOException $e) {
