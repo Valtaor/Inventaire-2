@@ -887,6 +887,10 @@
   animation: modalSlideUp 0.3s ease-out;
 }
 
+.modal-dialog-large {
+  max-width: 900px;
+}
+
 @keyframes modalSlideUp {
   from {
     opacity: 0;

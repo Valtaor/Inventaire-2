@@ -37,4 +37,35 @@ foreach ($inventory_ajax_actions as $action => $callback) {
     add_action('wp_ajax_nopriv_' . $action, $callback);
 }
 
+/**
+ * Créer automatiquement la page de gestion des catégories si elle n'existe pas
+ */
+function inventory_create_categories_page()
+{
+    // Vérifier si la page existe déjà
+    $existing_page = get_page_by_path('categories');
+
+    if (!$existing_page) {
+        // Créer la page
+        $page_data = [
+            'post_title'    => 'Catégories Inventaire',
+            'post_content'  => '',
+            'post_status'   => 'publish',
+            'post_type'     => 'page',
+            'post_name'     => 'categories',
+            'page_template' => 'page-categories.php',
+            'comment_status' => 'closed',
+            'ping_status'   => 'closed',
+        ];
+
+        $page_id = wp_insert_post($page_data);
+
+        if ($page_id && !is_wp_error($page_id)) {
+            // Assigner le template à la page
+            update_post_meta($page_id, '_wp_page_template', 'page-categories.php');
+        }
+    }
+}
+add_action('after_switch_theme', 'inventory_create_categories_page');
+
 // Fin du fichier functions.php
