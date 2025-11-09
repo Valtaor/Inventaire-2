@@ -64,12 +64,16 @@
           allCategories = json.data || [];
           renderCategories();
           // Émettre un événement pour notifier le script principal
-          var event = new CustomEvent('inventoryCategoriesUpdated', { detail: { categories: allCategories } });
-          document.dispatchEvent(event);
+          try {
+            var event = new CustomEvent('inventoryCategoriesUpdated', { detail: { categories: allCategories } });
+            document.dispatchEvent(event);
+          } catch (eventError) {
+            console.error('Erreur lors de l\'émission de l\'événement:', eventError);
+          }
         })
         .catch(function (error) {
-          showToast('Impossible de charger les catégories.', 'error');
-          console.error(error);
+          console.error('Erreur chargement catégories:', error);
+          // Ne pas afficher de toast ici car ça pourrait être silencieux dans certains cas
         });
     }
 
@@ -174,14 +178,15 @@
         })
         .then(function (json) {
           if (!json || !json.success) {
-            throw new Error((json && json.data && json.data.message) || 'Erreur');
+            throw new Error((json && json.data && json.data.message) || 'Erreur lors de la sauvegarde');
           }
           showToast(id ? 'Catégorie mise à jour.' : 'Catégorie créée.', 'success');
           resetCategoryForm();
-          fetchCategories();
+          return fetchCategories();
         })
         .catch(function (error) {
-          showToast('Erreur lors de l\'enregistrement de la catégorie. ' + (error && error.message ? error.message : ''), 'error');
+          console.error('Erreur submitCategory:', error);
+          showToast('Erreur : ' + (error && error.message ? error.message : 'Impossible d\'enregistrer'), 'error');
         });
     }
 

@@ -197,6 +197,20 @@
         return;
       }
       if (!list || !list.length) {
+        // Vérifier si c'est parce qu'il n'y a vraiment aucun produit ou juste à cause des filtres
+        var hasActiveFilters = filterState.quickStatus !== 'all' ||
+                              filterState.status !== 'all' ||
+                              filterState.casier !== 'all' ||
+                              filterState.category !== 'all' ||
+                              filterState.search !== '';
+
+        if (hasActiveFilters && allProducts.length > 0) {
+          // Il y a des produits mais aucun ne correspond aux filtres
+          emptyState.innerHTML = '<h3>Aucun produit ne correspond aux filtres actifs.</h3><p>Essayez de modifier vos critères de recherche.</p>';
+        } else {
+          // Vraiment aucun produit
+          emptyState.innerHTML = '<h3>Votre inventaire est vide.</h3><p>Commencez par ajouter votre premier objet !</p>';
+        }
         emptyState.removeAttribute('hidden');
       } else {
         emptyState.setAttribute('hidden', 'hidden');
