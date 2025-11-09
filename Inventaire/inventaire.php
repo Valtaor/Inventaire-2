@@ -365,10 +365,35 @@ get_header();
                             <select id="filterStatus"><option value="all"><?php esc_html_e('Tous les statuts', 'uncode'); ?></option></select>
                             <button type="button" class="secondary" id="export-csv"><?php esc_html_e('Exporter CSV', 'uncode'); ?></button>
                         </div>
+                        <div class="bulk-actions-bar" id="bulkActionsBar" style="display: none;">
+                            <div class="bulk-actions-info">
+                                <span id="bulkSelectedCount">0</span> <?php esc_html_e('produit(s) sélectionné(s)', 'uncode'); ?>
+                            </div>
+                            <div class="bulk-actions-buttons">
+                                <button type="button" class="inventory-button ghost-button" id="bulkEditButton">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="16" height="16">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                    </svg>
+                                    <?php esc_html_e('Modifier', 'uncode'); ?>
+                                </button>
+                                <button type="button" class="inventory-button ghost-button" id="bulkDeleteButton">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="16" height="16">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                    </svg>
+                                    <?php esc_html_e('Supprimer', 'uncode'); ?>
+                                </button>
+                                <button type="button" class="inventory-button ghost-button" id="bulkDeselectButton">
+                                    <?php esc_html_e('Désélectionner', 'uncode'); ?>
+                                </button>
+                            </div>
+                        </div>
                         <div class="table-wrapper">
                             <table class="inventory-table">
                                 <thead>
                                     <tr>
+                                        <th scope="col" class="col-checkbox">
+                                            <input type="checkbox" id="selectAllProducts" aria-label="<?php esc_attr_e('Sélectionner tous les produits', 'uncode'); ?>" />
+                                        </th>
                                         <th scope="col"><?php esc_html_e('Photo', 'uncode'); ?></th>
                                         <th scope="col"><?php esc_html_e('Titre', 'uncode'); ?></th>
                                         <th scope="col"><?php esc_html_e('Infos', 'uncode'); ?></th>
@@ -555,6 +580,50 @@ get_header();
                         <div class="modal-footer">
                             <button type="button" class="secondary" id="sale-modal-cancel"><?php esc_html_e('Annuler', 'uncode'); ?></button>
                             <button type="submit" class="primary" id="sale-submit-button"><?php esc_html_e('Enregistrer la vente', 'uncode'); ?></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Modal de modification en masse -->
+            <div class="modal-overlay" id="bulk-edit-modal-overlay" style="display: none;">
+                <div class="modal-dialog" role="dialog" aria-labelledby="bulk-edit-modal-title" aria-modal="true">
+                    <div class="modal-header">
+                        <h2 id="bulk-edit-modal-title"><?php esc_html_e('Modifier en masse', 'uncode'); ?></h2>
+                        <button type="button" class="modal-close" id="bulk-edit-modal-close" aria-label="<?php esc_attr_e('Fermer', 'uncode'); ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                    <form id="bulk-edit-form" class="modal-body">
+                        <p class="bulk-edit-description"><?php esc_html_e('Les modifications seront appliquées uniquement aux champs renseignés.', 'uncode'); ?></p>
+
+                        <div class="form-group">
+                            <label for="bulk-category" class="form-label"><?php esc_html_e('Catégorie', 'uncode'); ?></label>
+                            <select id="bulk-category" class="form-control">
+                                <option value=""><?php esc_html_e('Ne pas modifier', 'uncode'); ?></option>
+                                <option value="__none__"><?php esc_html_e('Aucune catégorie', 'uncode'); ?></option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bulk-casier" class="form-label"><?php esc_html_e('Casier / emplacement', 'uncode'); ?></label>
+                            <input type="text" id="bulk-casier" class="form-control" placeholder="<?php esc_attr_e('Ne pas modifier', 'uncode'); ?>" />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bulk-incomplete" class="form-label"><?php esc_html_e('Marquer comme à compléter', 'uncode'); ?></label>
+                            <select id="bulk-incomplete" class="form-control">
+                                <option value=""><?php esc_html_e('Ne pas modifier', 'uncode'); ?></option>
+                                <option value="1"><?php esc_html_e('Oui', 'uncode'); ?></option>
+                                <option value="0"><?php esc_html_e('Non', 'uncode'); ?></option>
+                            </select>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="secondary" id="bulk-edit-modal-cancel"><?php esc_html_e('Annuler', 'uncode'); ?></button>
+                            <button type="submit" class="primary" id="bulk-edit-submit-button"><?php esc_html_e('Appliquer les modifications', 'uncode'); ?></button>
                         </div>
                     </form>
                 </div>
