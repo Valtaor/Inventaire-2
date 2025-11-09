@@ -1145,8 +1145,7 @@
       if (categoriesModal) {
         categoriesModal.style.display = 'none';
       }
-      // Rafraîchir les catégories dans les dropdowns après fermeture
-      loadCategories();
+      // Les catégories sont automatiquement mises à jour via l'événement 'inventoryCategoriesUpdated'
     }
 
     function submitBulkEdit(event) {
@@ -1672,6 +1671,31 @@
 
       document.body.appendChild(mobileBurger);
     }
+
+    // Écouter les mises à jour des catégories depuis script-categories.js
+    document.addEventListener('inventoryCategoriesUpdated', function(e) {
+      if (e.detail && e.detail.categories) {
+        allCategories = e.detail.categories;
+
+        // Mettre à jour le select du formulaire
+        if (categorySelect) {
+          var selectedValue = categorySelect.value;
+          categorySelect.innerHTML = '<option value="">Aucune catégorie</option>';
+          allCategories.forEach(function (category) {
+            var option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
+            if (category.id == selectedValue) {
+              option.selected = true;
+            }
+            categorySelect.appendChild(option);
+          });
+        }
+
+        // Mettre à jour le filtre par catégorie
+        populateCategoryFilter();
+      }
+    });
 
     loadCategories();
     fetchProducts();

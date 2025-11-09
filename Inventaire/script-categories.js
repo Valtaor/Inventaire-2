@@ -63,6 +63,9 @@
           }
           allCategories = json.data || [];
           renderCategories();
+          // Émettre un événement pour notifier le script principal
+          var event = new CustomEvent('inventoryCategoriesUpdated', { detail: { categories: allCategories } });
+          document.dispatchEvent(event);
         })
         .catch(function (error) {
           showToast('Impossible de charger les catégories.', 'error');

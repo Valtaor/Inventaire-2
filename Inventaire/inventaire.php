@@ -246,15 +246,15 @@ get_header();
                             </div>
                             <div class="form-group">
                                 <label for="product-category" class="form-label"><?php esc_html_e('Catégorie (facultatif)', 'uncode'); ?></label>
-                                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                    <select id="product-category" name="category_id" class="form-control" style="flex: 1;">
+                                <div class="category-select-group">
+                                    <select id="product-category" name="category_id" class="form-control">
                                         <option value=""><?php esc_html_e('Aucune catégorie', 'uncode'); ?></option>
                                     </select>
-                                    <button type="button" class="inventory-button ghost-button" id="manage-categories-button" style="white-space: nowrap;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;">
+                                    <button type="button" class="inventory-button ghost-button manage-categories-button" id="manage-categories-button">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M12 5v14M5 12h14"/>
                                         </svg>
-                                        <?php esc_html_e('Gérer', 'uncode'); ?>
+                                        <span><?php esc_html_e('Gérer', 'uncode'); ?></span>
                                     </button>
                                 </div>
                             </div>
