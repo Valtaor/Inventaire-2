@@ -1149,3 +1149,120 @@ function inventory_delete_tag()
     }
 }
 add_action('wp_ajax_delete_tag', 'inventory_delete_tag');
+
+/**
+ * Modification en masse des produits
+ */
+function inventory_bulk_edit_products()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $product_ids = json_decode(stripslashes($_POST['product_ids'] ?? '[]'), true);
+    $updates = json_decode(stripslashes($_POST['updates'] ?? '{}'), true);
+
+    if (empty($product_ids) || !is_array($product_ids)) {
+        wp_send_json_error(['message' => 'Aucun produit sélectionné']);
+        return;
+    }
+
+    if (empty($updates) || !is_array($updates)) {
+        wp_send_json_error(['message' => 'Aucune modification à appliquer']);
+        return;
+    }
+
+    try {
+        // Construire la requête SQL dynamiquement
+        $setClauses = [];
+        $params = [];
+
+        if (isset($updates['category_id'])) {
+            $setClauses[] = 'category_id = :category_id';
+            $params[':category_id'] = $updates['category_id'];
+        }
+
+        if (isset($updates['emplacement'])) {
+            $setClauses[] = 'emplacement = :emplacement';
+            $params[':emplacement'] = sanitize_text_field($updates['emplacement']);
+        }
+
+        if (isset($updates['a_completer'])) {
+            $setClauses[] = 'a_completer = :a_completer';
+            $params[':a_completer'] = intval($updates['a_completer']);
+        }
+
+        if (empty($setClauses)) {
+            wp_send_json_error(['message' => 'Aucune modification valide']);
+            return;
+        }
+
+        // Créer les placeholders pour les IDs
+        $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+        $setClause = implode(', ', $setClauses);
+
+        $sql = "UPDATE {$GLOBALS['wpdb']->prefix}inventaire SET $setClause WHERE id IN ($placeholders)";
+        $stmt = $pdo->prepare($sql);
+
+        // Bind des paramètres de mise à jour
+        $bindIndex = 1;
+        foreach ($params as $value) {
+            $stmt->bindValue($bindIndex++, $value);
+        }
+
+        // Bind des IDs
+        foreach ($product_ids as $id) {
+            $stmt->bindValue($bindIndex++, intval($id), PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        wp_send_json_success(['updated' => $stmt->rowCount()]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_bulk_edit_products', 'inventory_bulk_edit_products');
+
+/**
+ * Suppression en masse des produits
+ */
+function inventory_bulk_delete_products()
+{
+    $pdo = inventory_db_get_pdo();
+    if (!$pdo) {
+        wp_send_json_error(['message' => 'Connexion à la base impossible']);
+        return;
+    }
+
+    $product_ids = json_decode(stripslashes($_POST['product_ids'] ?? '[]'), true);
+
+    if (empty($product_ids) || !is_array($product_ids)) {
+        wp_send_json_error(['message' => 'Aucun produit sélectionné']);
+        return;
+    }
+
+    try {
+        // Créer les placeholders pour les IDs
+        $placeholders = implode(',', array_fill(0, count($product_ids), '?'));
+        $sql = "DELETE FROM {$GLOBALS['wpdb']->prefix}inventaire WHERE id IN ($placeholders)";
+        $stmt = $pdo->prepare($sql);
+
+        // Bind des IDs
+        $bindIndex = 1;
+        foreach ($product_ids as $id) {
+            $stmt->bindValue($bindIndex++, intval($id), PDO::PARAM_INT);
+        }
+
+        $stmt->execute();
+        wp_send_json_success(['deleted' => $stmt->rowCount()]);
+        return;
+    } catch (PDOException $e) {
+        wp_send_json_error(['message' => 'Erreur base de données : ' . $e->getMessage()]);
+        return;
+    }
+}
+add_action('wp_ajax_bulk_delete_products', 'inventory_bulk_delete_products');
