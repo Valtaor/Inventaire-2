@@ -18,6 +18,7 @@
     var searchInput = document.getElementById('inventory-search');
     var quickFilterButtons = Array.prototype.slice.call(document.querySelectorAll('.quick-filter-btn'));
     var filterCasier = document.getElementById('filterCasier');
+    var filterCategory = document.getElementById('filterCategory');
     var filterStatus = document.getElementById('filterStatus');
     var exportButton = document.getElementById('export-csv');
     var mobileAddItem = document.getElementById('mobileAddItem');
@@ -61,10 +62,12 @@
     var filterState = {
       quickStatus: 'all',
       casier: 'all',
+      category: 'all',
       status: 'all',
       search: ''
     };
     var categorySelect = document.getElementById('product-category');
+    var allCategories = [];
 
     function prefersDark() {
       return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -229,6 +232,22 @@
     function buildInfoCell(product) {
       var list = document.createElement('ul');
       list.className = 'inventory-meta-list';
+
+      // Afficher la catégorie si elle existe
+      if (product.category_id && allCategories.length > 0) {
+        var category = allCategories.find(function(cat) {
+          return String(cat.id) === String(product.category_id);
+        });
+        if (category) {
+          var categoryItem = createTextElement('li', 'inventory-meta-item inventory-meta-category', (category.icon ? category.icon + ' ' : '') + category.name);
+          categoryItem.setAttribute('data-meta-label', 'Catégorie');
+          if (category.color) {
+            categoryItem.style.color = category.color;
+            categoryItem.style.fontWeight = '600';
+          }
+          list.appendChild(categoryItem);
+        }
+      }
 
       var casier = product.emplacement ? product.emplacement : '';
       if (casier) {
@@ -492,6 +511,12 @@
             return false;
           }
         }
+        if (filterState.category !== 'all') {
+          var productCategoryId = product.category_id ? String(product.category_id) : '';
+          if (productCategoryId !== String(filterState.category)) {
+            return false;
+          }
+        }
         if (filterState.search) {
           var query = filterState.search.toLowerCase();
           var haystack = [product.nom, product.reference, product.notes, product.description]
@@ -509,10 +534,6 @@
     }
 
     function loadCategories() {
-      if (!categorySelect) {
-        return;
-      }
-
       var url = ajaxUrl;
       if (url.indexOf('?') === -1) {
         url += '?action=get_categories';
@@ -533,24 +554,50 @@
           if (!json || !json.success) {
             throw new Error((json && json.data && json.data.message) || 'Erreur');
           }
-          var categories = json.data || [];
-          var selectedValue = categorySelect.value;
-          categorySelect.innerHTML = '<option value="">Aucune catégorie</option>';
-          categories.forEach(function (category) {
-            var option = document.createElement('option');
-            option.value = category.id;
-            option.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
-            if (category.id == selectedValue) {
-              option.selected = true;
-            }
-            categorySelect.appendChild(option);
-          });
+          allCategories = json.data || [];
+
+          // Remplir le select du formulaire
+          if (categorySelect) {
+            var selectedValue = categorySelect.value;
+            categorySelect.innerHTML = '<option value="">Aucune catégorie</option>';
+            allCategories.forEach(function (category) {
+              var option = document.createElement('option');
+              option.value = category.id;
+              option.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
+              if (category.id == selectedValue) {
+                option.selected = true;
+              }
+              categorySelect.appendChild(option);
+            });
+          }
+
+          // Remplir le filtre par catégorie
+          populateCategoryFilter();
         })
         .catch(function (error) {
           if (window.console && console.error) {
             console.error('Erreur chargement catégories:', error);
           }
         });
+    }
+
+    function populateCategoryFilter() {
+      if (!filterCategory) {
+        return;
+      }
+
+      var selectedCategory = filterCategory.value;
+      filterCategory.innerHTML = '<option value="all">Toutes les catégories</option>';
+
+      allCategories.forEach(function (category) {
+        var option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
+        if (category.id == selectedCategory) {
+          option.selected = true;
+        }
+        filterCategory.appendChild(option);
+      });
     }
 
     function populateFilters() {
@@ -955,6 +1002,11 @@
       applyFilters();
     }
 
+    function handleCategoryChange(event) {
+      filterState.category = event.target.value;
+      applyFilters();
+    }
+
     function handleStatusChange(event) {
       filterState.status = event.target.value;
       applyFilters();
@@ -1043,6 +1095,10 @@
 
     if (filterCasier) {
       filterCasier.addEventListener('change', handleCasierChange);
+    }
+
+    if (filterCategory) {
+      filterCategory.addEventListener('change', handleCategoryChange);
     }
 
     if (filterStatus) {

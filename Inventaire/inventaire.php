@@ -361,6 +361,7 @@ get_header();
                         <div class="filters" id="filtersPanel">
                             <input type="search" id="inventory-search" class="search-input" placeholder="<?php esc_attr_e('Rechercher...', 'uncode'); ?>" aria-label="<?php esc_attr_e('Rechercher', 'uncode'); ?>" />
                             <select id="filterCasier"><option value="all"><?php esc_html_e('Tous les casiers', 'uncode'); ?></option></select>
+                            <select id="filterCategory"><option value="all"><?php esc_html_e('Toutes les catégories', 'uncode'); ?></option></select>
                             <select id="filterStatus"><option value="all"><?php esc_html_e('Tous les statuts', 'uncode'); ?></option></select>
                             <button type="button" class="secondary" id="export-csv"><?php esc_html_e('Exporter CSV', 'uncode'); ?></button>
                         </div>
