@@ -83,6 +83,11 @@
     var bulkCategorySelect = document.getElementById('bulk-category');
     var selectedProducts = [];
 
+    // Category management modal elements
+    var manageCategoriesButton = document.getElementById('manage-categories-button');
+    var categoriesModal = document.getElementById('categories-modal-overlay');
+    var categoriesModalClose = document.getElementById('categories-modal-close');
+
     function prefersDark() {
       return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
@@ -1129,6 +1134,21 @@
       }
     }
 
+    // Category management modal functions
+    function openCategoriesModal() {
+      if (categoriesModal) {
+        categoriesModal.style.display = 'flex';
+      }
+    }
+
+    function closeCategoriesModal() {
+      if (categoriesModal) {
+        categoriesModal.style.display = 'none';
+      }
+      // Rafraîchir les catégories dans les dropdowns après fermeture
+      loadCategories();
+    }
+
     function submitBulkEdit(event) {
       event.preventDefault();
 
@@ -1353,6 +1373,23 @@
       bulkEditModal.addEventListener('click', function(e) {
         if (e.target === bulkEditModal) {
           closeBulkEditModal();
+        }
+      });
+    }
+
+    // Category management modal event listeners
+    if (manageCategoriesButton) {
+      manageCategoriesButton.addEventListener('click', openCategoriesModal);
+    }
+
+    if (categoriesModalClose) {
+      categoriesModalClose.addEventListener('click', closeCategoriesModal);
+    }
+
+    if (categoriesModal) {
+      categoriesModal.addEventListener('click', function(e) {
+        if (e.target === categoriesModal) {
+          closeCategoriesModal();
         }
       });
     }
