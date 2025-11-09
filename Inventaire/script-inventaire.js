@@ -1708,6 +1708,22 @@
 
         // Mettre à jour le filtre par catégorie
         populateCategoryFilter();
+
+        // Mettre à jour le select du modal de modification en masse si le modal est ouvert
+        if (bulkCategorySelect && bulkEditModal && bulkEditModal.style.display === 'flex') {
+          var bulkSelectedValue = bulkCategorySelect.value;
+          var baseOptions = '<option value="">Ne pas modifier</option><option value="__none__">Aucune catégorie</option>';
+          bulkCategorySelect.innerHTML = baseOptions;
+          allCategories.forEach(function(category) {
+            var option = document.createElement('option');
+            option.value = category.id;
+            option.textContent = (category.icon ? category.icon + ' ' : '') + category.name;
+            if (category.id == bulkSelectedValue) {
+              option.selected = true;
+            }
+            bulkCategorySelect.appendChild(option);
+          });
+        }
       }
     });
 
